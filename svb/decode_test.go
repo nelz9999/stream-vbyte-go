@@ -67,18 +67,23 @@ func TestDecodeBlock(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		lens := lengths[test.control]
-		results, err := decodeBlock(lens, test.data)
-		if err != nil {
-			if test.isErr {
-				continue
+		r, n := decodeBlock(test.control, test.data)
+
+		if test.isErr {
+			if n != 0 {
+				t.Errorf("%#x: %d != 0\n", test.control, n)
 			}
-			t.Errorf("%#x unexpected: %v\n", test.control, err)
+		} else {
+			blens := lookup[test.control]
+			size := int(blens[0] + blens[1] + blens[2] + blens[3])
+			if n != size {
+				t.Errorf("%#x: %d != %d\n", test.control, n, size)
+			}
 		}
 
 		for ix, expected := range test.results {
-			if results[ix] != expected {
-				t.Errorf("%#x: %d != %d\n", test.control, results[ix], expected)
+			if r[ix] != expected {
+				t.Errorf("%#x: %d != %d\n", test.control, r[ix], expected)
 			}
 		}
 		// t.Logf("Out: %v\n", results)

@@ -17,11 +17,6 @@ package svb
 import "testing"
 
 func TestEncodeBlock(t *testing.T) {
-	l := []string{"alpha", "beta", "gamma", "delta"}
-	for ix := 0; ix < 4; ix++ {
-		t.Logf("%d: %v\n", ix, l[ix:])
-	}
-
 	tests := []struct {
 		input   []uint32
 		control byte
@@ -40,15 +35,15 @@ func TestEncodeBlock(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		c := []byte{0xff}
 		d := make([]byte, 16)
-		n := encodeBlock(c, d, test.input[0], test.input[1], test.input[2], test.input[3])
+		c, n := encodeBlock(d, test.input[0], test.input[1], test.input[2], test.input[3])
 
-		if c[0] != test.control {
-			t.Errorf("control: %#x != %#x\n", c[0], test.control)
+		if c != test.control {
+			t.Errorf("control: %#x != %#x\n", c, test.control)
 		}
-		size := int(lengths[c[0]][4])
-		if n != size {
+		blens := lookup[c]
+		size := blens[0] + blens[1] + blens[2] + blens[3]
+		if n != int(size) {
 			t.Errorf("size: %d != %d", n, size)
 		}
 	}

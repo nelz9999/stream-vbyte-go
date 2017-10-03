@@ -19,7 +19,7 @@ import "testing"
 var offsets = []uint8{6, 4, 2, 0}
 
 func TestLengths(t *testing.T) {
-	for key, vals := range lengths {
+	for key, vals := range lookup {
 		var total uint8
 		for ix, offset := range offsets {
 			expected := uint8(1 + ((key >> offset) & 0x03))
@@ -27,9 +27,6 @@ func TestLengths(t *testing.T) {
 			if vals[ix] != expected {
 				t.Errorf("%#x, %d: %d != %d\n", key, ix, expected, vals[ix])
 			}
-		}
-		if total != vals[4] {
-			t.Errorf("%#x, total: %d != %d\n", key, total, vals[4])
 		}
 	}
 }

@@ -16,24 +16,28 @@ package svb
 
 var encodeOffsets = []uint8{24, 16, 8, 0}
 
-func encodeBlock(control []byte, data []byte, num0, num1, num2, num3 uint32) int {
-	i := 0
+func encodeBlock(buf []byte, num0, num1, num2, num3 uint32) (control byte, n int) {
 	for _, num := range []uint32{num0, num1, num2, num3} {
-		length := 4
-		if num < 256 { // 2**8
-			length = 1
-		} else if num < 65536 { // 2**16
-			length = 2
-		} else if num < 16777216 { // 2**24
-			length = 3
-		}
-
-		control[0] = (control[0] << 2) + byte(length-1)
-		for _, offset := range encodeOffsets[(4 - length):] {
-			data[i] = byte(((num >> offset) & 0xff))
-			i++
+		control <<= 2
+		blen := byteLength(num)
+		control |= byte(blen - 1)
+		for _, offset := range encodeOffsets[(4 - blen):] {
+			buf[n] = byte((num >> offset) & 0xff)
+			n++
 		}
 	}
+	return control, n
+}
 
-	return i
+func byteLength(n uint32) uint8 {
+	if n < 256 {
+		return 1
+	}
+	if n < 65536 {
+		return 2
+	}
+	if n < 16777216 {
+		return 3
+	}
+	return 4
 }

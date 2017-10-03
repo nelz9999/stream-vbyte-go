@@ -20,19 +20,17 @@ import "fmt"
 // data slice to fulfill what the control byte specifies
 var ErrInsufficient = fmt.Errorf("insufficient data supplied")
 
-func decodeBlock(lens [5]uint8, data []byte) (results [4]uint32, err error) {
-	if len(data) < int(lens[4]) {
-		return results, ErrInsufficient
+func decodeBlock(control byte, buf []byte) (results [4]uint32, n int) {
+	blens := lookup[control]
+	if len(buf) < int(blens[0]+blens[1]+blens[2]+blens[3]) {
+		return results, 0
 	}
-	offset := 0
-	for ix, length := range lens {
-		if ix == 4 {
-			break
-		}
-		for jx := uint8(0); jx < length; jx++ {
-			results[ix] = (results[ix] << 8) + uint32(data[offset])
-			offset++
+	for ix, blen := range blens {
+		for jx := uint8(0); jx < blen; jx++ {
+			results[ix] <<= 8
+			results[ix] |= uint32(buf[n])
+			n++
 		}
 	}
-	return results, nil
+	return results, n
 }
