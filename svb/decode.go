@@ -14,23 +14,42 @@
 
 package svb
 
-import "fmt"
+import "io"
 
-// ErrInsufficient is returned when there aren't enough bytes in the
-// data slice to fulfill what the control byte specifies
-var ErrInsufficient = fmt.Errorf("insufficient data supplied")
-
-func decodeBlock(control byte, buf []byte) (results [4]uint32, n int) {
-	blens := lookup[control]
-	if len(buf) < int(blens[0]+blens[1]+blens[2]+blens[3]) {
-		return results, 0
+// Uint32s decodes a quad of uint32 from the data buffer, returning
+// the four uint32s and the number of bytes consumed from the buffer.
+// If there aren't enough bytes in the data buffer to match what is required
+// by the ctrl byte, the quad is returned as zeros with n = 0.
+func Uint32s(ctrl byte, data []byte) (nums [4]uint32, n int) {
+	blens := lookup[ctrl]
+	if len(data) < int(blens[0]+blens[1]+blens[2]+blens[3]) {
+		return nums, 0
 	}
 	for ix, blen := range blens {
 		for jx := uint8(0); jx < blen; jx++ {
-			results[ix] <<= 8
-			results[ix] |= uint32(buf[n])
+			nums[ix] <<= 8
+			nums[ix] |= uint32(data[n])
 			n++
 		}
 	}
-	return results, n
+	return nums, n
+}
+
+// ReadUint32s reads a quad of uint32 from d, using the information encoded
+// in the ctrl byte.
+func ReadUint32s(ctrl byte, d io.ByteReader) (nums [4]uint32, err error) {
+	blens := lookup[ctrl]
+	var n int
+	for ix, blen := range blens {
+		for jx := uint8(0); jx < blen; jx++ {
+			b, err := d.ReadByte()
+			if err != nil {
+				return nums, err
+			}
+			nums[ix] <<= 8
+			nums[ix] |= uint32(b)
+			n++
+		}
+	}
+	return nums, nil
 }

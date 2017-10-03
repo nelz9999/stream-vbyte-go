@@ -16,17 +16,21 @@ package svb
 
 var offsets = []uint8{24, 16, 8, 0}
 
-func encodeBlock(buf []byte, num0, num1, num2, num3 uint32) (control byte, n int) {
+// PutUint32s encodes a quad of uint32 into the data buffer, returning
+// the control byte that signifies the encoded byte lengths, and the length
+// of how many bytes got written to the data buffer.
+// If the buffer is too small, PutUStreamVByte will panic
+func PutUint32s(data []byte, num0, num1, num2, num3 uint32) (ctrl byte, n int) {
 	for _, num := range []uint32{num0, num1, num2, num3} {
-		control <<= 2
+		ctrl <<= 2
 		blen := byteLength(num)
-		control |= byte(blen - 1)
+		ctrl |= byte(blen - 1)
 		for _, offset := range offsets[(4 - blen):] {
-			buf[n] = byte((num >> offset) & 0xff)
+			data[n] = byte((num >> offset) & 0xff)
 			n++
 		}
 	}
-	return control, n
+	return ctrl, n
 }
 
 func byteLength(n uint32) uint8 {

@@ -14,9 +14,12 @@
 
 package svb
 
-import "testing"
+import (
+	"bytes"
+	"testing"
+)
 
-func TestDecodeBlock(t *testing.T) {
+func TestUint32s(t *testing.T) {
 	tests := []struct {
 		control byte
 		data    []byte
@@ -67,7 +70,9 @@ func TestDecodeBlock(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		r, n := decodeBlock(test.control, test.data)
+		// raw buffer form //
+		// - - - - - - - - //
+		r, n := Uint32s(test.control, test.data)
 
 		if test.isErr {
 			if n != 0 {
@@ -86,6 +91,19 @@ func TestDecodeBlock(t *testing.T) {
 				t.Errorf("%#x: %d != %d\n", test.control, r[ix], expected)
 			}
 		}
-		// t.Logf("Out: %v\n", results)
+
+		// via io.ByteReader //
+		// - - - - - - - - - //
+		var err error
+		r, err = ReadUint32s(test.control, bytes.NewBuffer(test.data))
+		if err != nil && !test.isErr {
+			t.Errorf("unexpected: %v\n", err)
+		}
+
+		for ix, expected := range test.results {
+			if r[ix] != expected {
+				t.Errorf("%#x: %d != %d\n", test.control, r[ix], expected)
+			}
+		}
 	}
 }

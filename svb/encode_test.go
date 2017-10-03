@@ -16,7 +16,7 @@ package svb
 
 import "testing"
 
-func TestEncodeBlock(t *testing.T) {
+func TestPutUint32s(t *testing.T) {
 	tests := []struct {
 		input   []uint32
 		control byte
@@ -36,7 +36,7 @@ func TestEncodeBlock(t *testing.T) {
 
 	for _, test := range tests {
 		d := make([]byte, 16)
-		c, n := encodeBlock(d, test.input[0], test.input[1], test.input[2], test.input[3])
+		c, n := PutUint32s(d, test.input[0], test.input[1], test.input[2], test.input[3])
 
 		if c != test.control {
 			t.Errorf("control: %#x != %#x\n", c, test.control)
@@ -47,4 +47,13 @@ func TestEncodeBlock(t *testing.T) {
 			t.Errorf("size: %d != %d", n, size)
 		}
 	}
+}
+
+func TestPutUint32sPanic(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("no panic received")
+		}
+	}()
+	PutUint32s([]byte{0x00}, 0, 1, 2, 3)
 }
