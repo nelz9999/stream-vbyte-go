@@ -16,9 +16,8 @@ package svb
 
 import "testing"
 
-var offsets = []uint8{6, 4, 2, 0}
-
 func TestLengths(t *testing.T) {
+	offsets := []uint8{6, 4, 2, 0}
 	for key, vals := range lookup {
 		var total uint8
 		for ix, offset := range offsets {

@@ -14,14 +14,14 @@
 
 package svb
 
-var encodeOffsets = []uint8{24, 16, 8, 0}
+var offsets = []uint8{24, 16, 8, 0}
 
 func encodeBlock(buf []byte, num0, num1, num2, num3 uint32) (control byte, n int) {
 	for _, num := range []uint32{num0, num1, num2, num3} {
 		control <<= 2
 		blen := byteLength(num)
 		control |= byte(blen - 1)
-		for _, offset := range encodeOffsets[(4 - blen):] {
+		for _, offset := range offsets[(4 - blen):] {
 			buf[n] = byte((num >> offset) & 0xff)
 			n++
 		}
