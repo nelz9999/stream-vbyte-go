@@ -13,6 +13,5 @@
 // limitations under the License.
 
 // Package svb is a Go port of the Stream VByte algorithm, as designed
-// by Lemire/Kurz/Rupp. It attempts to mimic similar usage patterns
-// as the standard library's Uvarint.
+// by Lemire/Kurz/Rupp (https://arxiv.org/abs/1709.08990).
 package svb

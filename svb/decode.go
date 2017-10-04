@@ -53,3 +53,44 @@ func ReadUint32s(ctrl byte, d io.ByteReader) (nums [4]uint32, err error) {
 	}
 	return nums, nil
 }
+
+// GetU32Block decodes a single quad of uint32 values. (This function is the
+// read-side parallel to PutU32Block. These operations are optimized for read-
+// side speed.)
+//
+// The ctrl byte conveys information about the block being decoded. The data
+// parameter is the buffer where we will be pulling the raw data from, and may
+// require up to 16 bytes to be available. The diff parameter indicates whether
+// the values were encoded using "differential coding" (for more efficient
+// storage).
+//
+// The results are the quad of data decoded along with an indication of the
+// number of bytes consumed from the data buffer.
+//
+// Panics will be thrown if there are too few bytes available in the data
+// buffer.
+func GetU32Block(ctrl byte, data []byte, diff bool) (quad [4]uint32, n int) {
+	blens := lookup[ctrl]
+	for ix, blen := range blens {
+		if blen == 4 {
+			quad[ix] |= (uint32(data[n]) << 24)
+			n++
+		}
+		if blen >= 3 {
+			quad[ix] |= (uint32(data[n]) << 16)
+			n++
+		}
+		if blen >= 2 {
+			quad[ix] |= (uint32(data[n]) << 8)
+			n++
+		}
+		quad[ix] |= uint32(data[n])
+		n++
+	}
+	if diff {
+		quad[1] += quad[0]
+		quad[2] += quad[1]
+		quad[3] += quad[2]
+	}
+	return quad, n
+}

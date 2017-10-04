@@ -45,3 +45,49 @@ func byteLength(n uint32) uint8 {
 	}
 	return 4
 }
+
+// PutU32Block encodes a single quad of uint32 values. (This function is the
+// write-side parallel to GetU32Block. These operations are optimized for
+// read-side speed, but the write-side is still pretty quick.)
+//
+// The data parameter is the buffer where the encoded values are written, and
+// may need up to 16 bytes available. The quad parameter is the buffer of
+// integers that are to be encoded, and needs to have 4 values available.
+// The diff value signifies that you want to use "differential coding" (for
+// more efficient storage of the values), but this requires that the values
+// must be in ascending sorted order.
+//
+// The ctrl byte returned is a required hint for decoding, and is expected to
+// be stored in parallel to the data buffer. And the return value n represents
+// the number of bytes used in the data buffer, as per the algorithm.
+//
+// Panics will be thrown if there are too few bytes available in the data
+// buffer, too few values in the quad buffer, or if diff is true and the
+// values are not in ascending sort order.
+func PutU32Block(data []byte, quad []uint32, diff bool) (ctrl byte, n int) {
+	var prev uint32
+	for i := uint(0); i < 4; i++ {
+		num := quad[i]
+		if i > 0 && diff {
+			num = num - prev
+			prev = num
+		}
+		blen := byteLength(num)
+		ctrl |= ((blen - 1) << (6 - 2*i))
+		if blen == 4 {
+			data[n] = byte((num >> 24) & 0xff)
+			n++
+		}
+		if blen >= 3 {
+			data[n] = byte((num >> 16) & 0xff)
+			n++
+		}
+		if blen >= 2 {
+			data[n] = byte((num >> 8) & 0xff)
+			n++
+		}
+		data[n] = byte(num & 0xff)
+		n++
+	}
+	return ctrl, n
+}
