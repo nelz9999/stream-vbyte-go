@@ -57,3 +57,63 @@ func TestPutUint32sPanic(t *testing.T) {
 	}()
 	PutUint32s([]byte{0x00}, 0, 1, 2, 3)
 }
+
+func TestPutU32BlockPanicForData(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("no panic received")
+		}
+	}()
+	PutU32Block([]byte{}, []uint32{0, 0, 0, 0}, false)
+}
+
+func TestPutU32BlockPanicForQuad(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("no panic received")
+		}
+	}()
+	data := make([]byte, 16)
+	PutU32Block(data, []uint32{0}, false)
+}
+
+func TestPutU32Block(t *testing.T) {
+	tests := []struct {
+		quad []uint32
+		ctrl byte
+		size int
+	}{
+		{ // Smallest possible encoded
+			[]uint32{0, 0, 0, 0},
+			0x00,
+			4,
+		},
+		{ // Smallest all-4-byte representation
+			[]uint32{(1 << 24), 2 * (1 << 24), 3 * (1 << 24), 4 * (1 << 24)},
+			0xff,
+			16,
+		},
+		{ // From whitepapaer (after diff coding): 1024, 12, 10, 1073741824
+			[]uint32{1024, 1036, 1046, 1073742870},
+			0x43,
+			8,
+		},
+		{ // From whitepapaer (after diff coding): 1, 2, 3, 1024
+			[]uint32{1, 3, 6, 1030},
+			0x01,
+			5,
+		},
+	}
+
+	for _, test := range tests {
+		data := make([]byte, 16)
+		ctrl, size := PutU32Block(data, test.quad, true)
+		if ctrl != test.ctrl {
+			t.Errorf("ctrl mismatch: %x != %x\n", ctrl, test.ctrl)
+		}
+		if size != test.size {
+			t.Errorf("size mismatch: %d != %d\n", size, test.size)
+		}
+		// t.Logf("% x\n", data[:size])
+	}
+}

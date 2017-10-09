@@ -16,7 +16,9 @@ package svb
 
 import (
 	"bytes"
+	"math/rand"
 	"testing"
+	"time"
 )
 
 func TestUint32s(t *testing.T) {
@@ -105,5 +107,107 @@ func TestUint32s(t *testing.T) {
 				t.Errorf("%#x: %d != %d\n", test.control, r[ix], expected)
 			}
 		}
+	}
+}
+
+func TestGetU32BlockPanicForData(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("no panic received")
+		}
+	}()
+	GetU32Block(0xff, []byte{0x00, 0x00, 0x00}, false)
+}
+
+func TestGetU32Block(t *testing.T) {
+	tests := []struct {
+		ctrl byte
+		data []byte
+		quad []uint32
+		size int
+	}{
+		{ // Smallest possible block
+			0x00,
+			[]byte{0x00, 0x00, 0x00, 0x00},
+			[]uint32{0, 0, 0, 0},
+			4,
+		},
+		{ // Smallest all-4-byte representation
+			0xff,
+			[]byte{
+				0x01, 0x00, 0x00, 0x00,
+				0x01, 0x00, 0x00, 0x00,
+				0x01, 0x00, 0x00, 0x00,
+				0x01, 0x00, 0x00, 0x00,
+			},
+			[]uint32{(1 << 24), 2 * (1 << 24), 3 * (1 << 24), 4 * (1 << 24)},
+			16,
+		},
+		{ // From whitepapaer: 1024, 12, 10, 1073741824
+			0x43,
+			[]byte{
+				0x04, 0x00, // 1024
+				0x0c,                   // 12
+				0x0a,                   // 10
+				0x40, 0x00, 0x00, 0x00, // 1073741824
+			},
+			[]uint32{1024, 1036, 1046, 1073742870},
+			8,
+		},
+		{ // From whitepapaer: 1, 2, 3, 1024
+			0x01,
+			[]byte{
+				0x01,       // 1
+				0x02,       // 2
+				0x03,       // 3
+				0x04, 0x00, // 1024
+			},
+			[]uint32{1, 3, 6, 1030},
+			5,
+		},
+	}
+
+	for _, test := range tests {
+		quad, size := GetU32Block(test.ctrl, test.data, true)
+		if size != test.size {
+			t.Errorf("mismatch size: %d != %d\n", size, test.size)
+		}
+		for ix := 0; ix < 4; ix++ {
+			if quad[ix] != test.quad[ix] {
+				t.Errorf("mismatch via %d: %x != %x\n", ix, quad[ix], test.quad[ix])
+			}
+		}
+	}
+}
+
+func TestU32BlockRoundtrip(t *testing.T) {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	data := make([]byte, 16)
+	quad := []uint32{0, 0, 0, 0}
+	for ix := 0; ix < 100; ix++ {
+		diff := (ix%2 == 0)
+
+		ctrl, size := PutU32Block(data, quad, diff)
+		q, s := GetU32Block(ctrl, data[:size], diff)
+
+		if s != size {
+			t.Errorf("mismatch size: %d != %d for %v\n", s, size, quad)
+		}
+
+		// Test this block, but also setup the random data for
+		// the next iteration
+		for jx := range quad {
+			if q[jx] != quad[jx] {
+				t.Errorf("mismatch: %v != %v\n", q, quad)
+			}
+
+			// Generate random data for the next time round
+			blen := uint(1 + r.Intn(4))
+			top := uint32(1) << (8 * blen)
+			low := (uint32(1) << (8 * (blen - 1))) - 1
+			quad[jx] = low + uint32(r.Intn(int(top-low)))
+			// t.Logf("%d: %d\n", jx, quad[jx])
+		}
+		// t.Logf("size: %d\n", size)
 	}
 }

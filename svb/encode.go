@@ -62,15 +62,14 @@ func byteLength(n uint32) uint8 {
 // the number of bytes used in the data buffer, as per the algorithm.
 //
 // Panics will be thrown if there are too few bytes available in the data
-// buffer, too few values in the quad buffer, or if diff is true and the
-// values are not in ascending sort order.
+// buffer, or too few values in the quad buffer.
 func PutU32Block(data []byte, quad []uint32, diff bool) (ctrl byte, n int) {
 	var prev uint32
 	for i := uint(0); i < 4; i++ {
 		num := quad[i]
-		if i > 0 && diff {
+		if diff {
 			num = num - prev
-			prev = num
+			prev += num
 		}
 		blen := byteLength(num)
 		ctrl |= ((blen - 1) << (6 - 2*i))
