@@ -17,7 +17,7 @@ package svb
 // lengths is the lookup table that is the shortcut to get from a control
 // byte to knowing the 4 individual data byte lengths (in index 0 - 3), as
 // well as the total data bytes needed for the given block (in index 4)
-var lookup = map[byte][4]uint8{
+var lookup = [...][4]uint8{
 	0x00: [4]uint8{1, 1, 1, 1},
 	0x01: [4]uint8{1, 1, 1, 2},
 	0x02: [4]uint8{1, 1, 1, 3},
